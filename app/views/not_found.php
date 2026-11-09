@@ -1,0 +1,1 @@
+<div class="panel panel-pad" style="max-width:650px;margin:70px auto;text-align:center"><h1>Página não encontrada</h1><p class="muted" style="margin:14px 0 23px">Não encontramos este endereço no sistema.</p><a href="<?=e(url('dashboard'))?>" class="btn-aurora">Voltar ao painel</a></div>

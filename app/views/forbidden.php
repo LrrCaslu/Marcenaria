@@ -1,0 +1,1 @@
+<div class="panel panel-pad" style="max-width:650px;margin:70px auto;text-align:center"><h1>Acesso restrito</h1><p class="muted" style="margin:14px 0 23px">Seu perfil não possui permissão para visualizar ou modificar este módulo.</p><a href="<?=e(url('dashboard'))?>" class="btn-aurora">Voltar ao início</a></div>

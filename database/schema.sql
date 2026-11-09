@@ -1,0 +1,197 @@
+CREATE TABLE IF NOT EXISTS users (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(120) NOT NULL,
+ email VARCHAR(190) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL,
+ role ENUM('admin','sales','production','finance') NOT NULL DEFAULT 'sales',
+ active TINYINT(1) NOT NULL DEFAULT 1,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS customers (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(180) NOT NULL,
+ kind ENUM('PF','PJ') NOT NULL DEFAULT 'PF',
+ document VARCHAR(22) DEFAULT NULL,
+ email VARCHAR(190) DEFAULT NULL,
+ phone VARCHAR(30) DEFAULT NULL,
+ address VARCHAR(255) DEFAULT NULL,
+ city VARCHAR(100) DEFAULT NULL,
+ state CHAR(2) DEFAULT NULL,
+ notes TEXT DEFAULT NULL,
+ active TINYINT(1) NOT NULL DEFAULT 1,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS suppliers (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(180) NOT NULL,
+ document VARCHAR(22) DEFAULT NULL,
+ contact VARCHAR(120) DEFAULT NULL,
+ email VARCHAR(190) DEFAULT NULL,
+ phone VARCHAR(30) DEFAULT NULL,
+ notes TEXT DEFAULT NULL,
+ active TINYINT(1) NOT NULL DEFAULT 1,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS materials (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ sku VARCHAR(50) NOT NULL UNIQUE,
+ name VARCHAR(180) NOT NULL,
+ category ENUM('chapa','ferragem','fita','acabamento','insumo','outro') NOT NULL DEFAULT 'outro',
+ unit VARCHAR(15) NOT NULL DEFAULT 'un',
+ cost DECIMAL(13,2) NOT NULL DEFAULT 0,
+ stock DECIMAL(13,3) NOT NULL DEFAULT 0,
+ minimum_stock DECIMAL(13,3) NOT NULL DEFAULT 0,
+ width_mm DECIMAL(10,1) DEFAULT NULL,
+ height_mm DECIMAL(10,1) DEFAULT NULL,
+ thickness_mm DECIMAL(7,1) DEFAULT NULL,
+ supplier_id INT UNSIGNED DEFAULT NULL,
+ active TINYINT(1) NOT NULL DEFAULT 1,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_material_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
+ CONSTRAINT ck_material_cost CHECK(cost >= 0),
+ CONSTRAINT ck_material_stock CHECK(stock >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_movements (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ material_id INT UNSIGNED NOT NULL,
+ delta DECIMAL(13,3) NOT NULL,
+ before_qty DECIMAL(13,3) NOT NULL,
+ after_qty DECIMAL(13,3) NOT NULL,
+ reason VARCHAR(255) NOT NULL,
+ user_id INT UNSIGNED NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_stock_material FOREIGN KEY(material_id) REFERENCES materials(id),
+ CONSTRAINT fk_stock_user FOREIGN KEY(user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS projects (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ customer_id INT UNSIGNED NOT NULL,
+ title VARCHAR(180) NOT NULL,
+ environment VARCHAR(120) NOT NULL DEFAULT '',
+ description TEXT DEFAULT NULL,
+ measurements TEXT DEFAULT NULL,
+ status ENUM('planning','approved','in_production','installation','completed','cancelled') NOT NULL DEFAULT 'planning',
+ due_date DATE DEFAULT NULL,
+ created_by INT UNSIGNED NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_project_customer FOREIGN KEY(customer_id) REFERENCES customers(id),
+ CONSTRAINT fk_project_user FOREIGN KEY(created_by) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quotes (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ code VARCHAR(30) NOT NULL UNIQUE,
+ customer_id INT UNSIGNED NOT NULL,
+ project_id INT UNSIGNED DEFAULT NULL,
+ title VARCHAR(180) NOT NULL,
+ status ENUM('draft','sent','approved','rejected') NOT NULL DEFAULT 'draft',
+ markup_pct DECIMAL(8,2) NOT NULL DEFAULT 30,
+ labor_cost DECIMAL(13,2) NOT NULL DEFAULT 0,
+ tax_pct DECIMAL(8,2) NOT NULL DEFAULT 0,
+ discount DECIMAL(13,2) NOT NULL DEFAULT 0,
+ subtotal DECIMAL(13,2) NOT NULL DEFAULT 0,
+ total DECIMAL(13,2) NOT NULL DEFAULT 0,
+ notes TEXT DEFAULT NULL,
+ valid_until DATE DEFAULT NULL,
+ created_by INT UNSIGNED NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ CONSTRAINT fk_quote_customer FOREIGN KEY(customer_id) REFERENCES customers(id),
+ CONSTRAINT fk_quote_project FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL,
+ CONSTRAINT fk_quote_user FOREIGN KEY(created_by) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quote_items (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ quote_id INT UNSIGNED NOT NULL,
+ material_id INT UNSIGNED DEFAULT NULL,
+ description VARCHAR(255) NOT NULL,
+ quantity DECIMAL(13,3) NOT NULL,
+ unit VARCHAR(15) NOT NULL DEFAULT 'un',
+ unit_cost DECIMAL(13,2) NOT NULL,
+ CONSTRAINT fk_quote_item_quote FOREIGN KEY(quote_id) REFERENCES quotes(id) ON DELETE CASCADE,
+ CONSTRAINT fk_quote_item_material FOREIGN KEY(material_id) REFERENCES materials(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS work_orders (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ code VARCHAR(30) NOT NULL UNIQUE,
+ project_id INT UNSIGNED NOT NULL,
+ quote_id INT UNSIGNED DEFAULT NULL UNIQUE,
+ title VARCHAR(180) NOT NULL,
+ status ENUM('queued','cutting','edgebanding','assembly','finishing','ready','delivered','cancelled') NOT NULL DEFAULT 'queued',
+ priority ENUM('low','normal','high') NOT NULL DEFAULT 'normal',
+ assigned_to INT UNSIGNED DEFAULT NULL,
+ due_date DATE DEFAULT NULL,
+ notes TEXT DEFAULT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_work_project FOREIGN KEY(project_id) REFERENCES projects(id),
+ CONSTRAINT fk_work_quote FOREIGN KEY(quote_id) REFERENCES quotes(id) ON DELETE SET NULL,
+ CONSTRAINT fk_work_assignee FOREIGN KEY(assigned_to) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS work_order_events (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ work_order_id INT UNSIGNED NOT NULL,
+ old_status VARCHAR(30) DEFAULT NULL,
+ new_status VARCHAR(30) NOT NULL,
+ user_id INT UNSIGNED NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_event_work FOREIGN KEY(work_order_id) REFERENCES work_orders(id) ON DELETE CASCADE,
+ CONSTRAINT fk_event_user FOREIGN KEY(user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS finance (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ description VARCHAR(220) NOT NULL,
+ kind ENUM('income','expense') NOT NULL,
+ category VARCHAR(80) NOT NULL DEFAULT 'Geral',
+ amount DECIMAL(13,2) NOT NULL,
+ due_date DATE NOT NULL,
+ paid_at DATE DEFAULT NULL,
+ customer_id INT UNSIGNED DEFAULT NULL,
+ project_id INT UNSIGNED DEFAULT NULL,
+ created_by INT UNSIGNED NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_finance_customer FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+ CONSTRAINT fk_finance_project FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL,
+ CONSTRAINT fk_finance_user FOREIGN KEY(created_by) REFERENCES users(id),
+ CONSTRAINT ck_finance_amount CHECK(amount > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS installations (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ project_id INT UNSIGNED NOT NULL,
+ planned_at DATETIME NOT NULL,
+ team VARCHAR(180) NOT NULL DEFAULT '',
+ address VARCHAR(255) NOT NULL DEFAULT '',
+ status ENUM('scheduled','in_progress','completed','pending') NOT NULL DEFAULT 'scheduled',
+ checklist TEXT DEFAULT NULL,
+ notes TEXT DEFAULT NULL,
+ completed_at DATETIME DEFAULT NULL,
+ CONSTRAINT fk_install_project FOREIGN KEY(project_id) REFERENCES projects(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS cut_pieces (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ project_id INT UNSIGNED NOT NULL,
+ material_id INT UNSIGNED NOT NULL,
+ label VARCHAR(160) NOT NULL,
+ width_mm DECIMAL(10,1) NOT NULL,
+ height_mm DECIMAL(10,1) NOT NULL,
+ quantity SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+ grain ENUM('free','vertical','horizontal') NOT NULL DEFAULT 'free',
+ edge_top TINYINT(1) NOT NULL DEFAULT 0,
+ edge_bottom TINYINT(1) NOT NULL DEFAULT 0,
+ edge_left TINYINT(1) NOT NULL DEFAULT 0,
+ edge_right TINYINT(1) NOT NULL DEFAULT 0,
+ CONSTRAINT fk_cut_project FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+ CONSTRAINT fk_cut_material FOREIGN KEY(material_id) REFERENCES materials(id),
+ CONSTRAINT ck_cut_width CHECK(width_mm > 0),
+ CONSTRAINT ck_cut_height CHECK(height_mm > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

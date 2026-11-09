@@ -1,0 +1,30 @@
+MARCENARIA AURORA - VERSAO LOCAL SERVBAY (WINDOWS)
+====================================================
+
+1. Abra o ServBay e inicie MySQL 8 e PHP 8.3+.
+2. Extraia a pasta marcenaria-aurora em C:\ServBay\www\marcenaria-aurora
+3. Execute INSTALAR_SERVBAY_WINDOWS.bat (duplo clique).
+   - Informe a senha REAL do MySQL mostrada no ServBay.
+   - O instalador cria config.local.php, banco/tabelas e dados de exemplo.
+4. No aplicativo ServBay, acesse Sites > Adicionar.
+   - Dominio sugerido: aurora.servbay.demo
+   - Tipo: PHP
+   - PHP: 8.3 ou superior
+   - Diretorio raiz do site (document root):
+     C:\ServBay\www\marcenaria-aurora\public
+   - Salve e inicie/recarregue o site.
+5. Abra no navegador o dominio configurado no passo 4.
+
+LOGIN DEMO:
+  admin@aurora.local
+  Aurora@2026!
+
+ATENCAO:
+- NUNCA use C:\ServBay\www\marcenaria-aurora como raiz web;
+  somente a subpasta public, para proteger as credenciais.
+- Se o ServBay estiver em outro diretorio, ajuste o caminho.
+- O dominio pode ser outro. Use exatamente o que cadastrar no ServBay.
+- O ServBay nao precisa do PHP -S nem de INICIAR_WINDOWS.bat.
+- Nao substitua a senha do MySQL por suposicoes. Consulte o painel ServBay.
+- Se o instalador nao identificar o PHP, habilite a CLI no ServBay.
+- Leia o README.md para limitacoes e recursos da demonstracao.

@@ -1,0 +1,11 @@
+{
+  "name": "demo/marcenaria-aurora",
+  "description": "ERP demonstrativo para marcenaria em PHP 8.3+ e MySQL 8",
+  "type": "project",
+  "require": {
+    "php": "^8.3",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*",
+    "dompdf/dompdf": "^3.1"
+  }
+}
